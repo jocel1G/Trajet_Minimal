@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-point-ride-optimizer"
+version = "0.1.0"
+description = "A desktop application for optimizing multi-point journeys"
+requires-python = ">=3.11"
+dependencies = [
+    "tkintermapview>=1.29",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[project.scripts]
+ride-optimizer = "src.app:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
