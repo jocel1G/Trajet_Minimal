@@ -44,6 +44,7 @@ class JourneyWindow:
         ttk.Button(controls, text="Delete", command=self.delete_point).pack(fill="x", pady=2)
         ttk.Button(controls, text="Clear all points", command=self.clear_points).pack(fill="x", pady=(8, 2))
         ttk.Button(controls, text="Add in database", command=self.add_in_database).pack(fill="x", pady=(8, 2))
+        ttk.Button(controls, text="Update in database", command=self.update_in_database).pack(fill="x", pady=2)
         ttk.Button(controls, text="Load from database", command=self.load_from_database).pack(fill="x", pady=2)
         ttk.Label(controls, text="Cost criterion").pack(anchor="w", pady=(12, 0))
         ttk.Combobox(controls, textvariable=self.criterion_var, values=("distance", "duration", "monetary_cost", "weighted"), state="readonly").pack(fill="x")
@@ -120,6 +121,17 @@ class JourneyWindow:
         self.common_delete_point_and_clear_point()
         self.status_var.set("All journey points cleared")
 
+    def common_add_and_update_in_database(self, journey):
+        try:           
+            for location in self.locations:
+                self.persistence.save_location(location)
+            self.persistence.save_journey(journey)
+            if self.current_result is not None:
+                self.persistence.save_result(dataclasses.replace(self.current_result, journey_id=journey.id))
+            
+        except Exception as error:
+            self.status_var.set(f"Database save failed: {error}")
+
     def add_in_database(self):
         try:
             if not self.locations:
@@ -127,11 +139,9 @@ class JourneyWindow:
                 return
             base_journey = self.current_journey or self._build_journey()
             journey = dataclasses.replace(base_journey, id=f"journey-{uuid.uuid4().hex}")
-            for location in self.locations:
-                self.persistence.save_location(location)
-            self.persistence.save_journey(journey)
-            if self.current_result is not None:
-                self.persistence.save_result(dataclasses.replace(self.current_result, journey_id=journey.id))
+            
+            self.common_add_and_update_in_database(journey)
+                
             self.current_journey = journey
             self.status_var.set(
                 "Journey points and optimization saved in database"
@@ -140,6 +150,21 @@ class JourneyWindow:
             )
         except Exception as error:
             self.status_var.set(f"Database save failed: {error}")
+
+    def update_in_database(self):
+        try:
+            if not self.current_journey:
+                self.status_var.set("No journey to update")
+                return            
+            if not self.locations:
+                self.status_var.set("Add at least one journey point first")
+                return
+            
+            self.common_add_and_update_in_database(self.current_journey)
+
+            self.status_var.set("Journey and optimization updated in database")
+        except Exception as error:
+            self.status_var.set(f"Database update failed: {error}")
 
     def load_from_database(self):
         try:
