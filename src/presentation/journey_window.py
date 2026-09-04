@@ -42,6 +42,7 @@ class JourneyWindow:
         ttk.Button(controls, text="Add", command=self.add_point).pack(fill="x", pady=(12, 2))
         ttk.Button(controls, text="Modify", command=self.modify_point).pack(fill="x", pady=2)
         ttk.Button(controls, text="Delete", command=self.delete_point).pack(fill="x", pady=2)
+        ttk.Button(controls, text="Clear all points", command=self.clear_points).pack(fill="x", pady=(8, 2))
         ttk.Button(controls, text="Add in database", command=self.add_in_database).pack(fill="x", pady=(8, 2))
         ttk.Button(controls, text="Load from database", command=self.load_from_database).pack(fill="x", pady=2)
         ttk.Label(controls, text="Cost criterion").pack(anchor="w", pady=(12, 0))
@@ -92,6 +93,18 @@ class JourneyWindow:
         except (ValueError, Exception) as error:
             messagebox.showerror("Invalid point", str(error))
 
+    def common_delete_point_and_clear_point(self, index=None):
+        if index is not None:
+            location = self.locations.pop(index)
+            self.status_var.set(f"Deleted {location.label}")
+        self.current_journey = None
+        self.current_result = None
+        self.map_view.clear_route()
+        self._refresh_points()
+        self.label_var.set("")
+        self.latitude_var.set("")
+        self.longitude_var.set("")
+
     def delete_point(self):
         selection = self.points.curselection()
         if not selection:
@@ -100,15 +113,12 @@ class JourneyWindow:
 
         index = selection[0]
         location = self.locations[index]
-        self.locations.pop(index)
-        self.current_journey = None
-        self.current_result = None
-        self.map_view.clear_route()
-        self._refresh_points()
-        self.label_var.set("")
-        self.latitude_var.set("")
-        self.longitude_var.set("")
-        self.status_var.set(f"Deleted {location.label}")
+        self.common_delete_point_and_clear_point(index)
+
+    def clear_points(self):
+        self.locations.clear()
+        self.common_delete_point_and_clear_point()
+        self.status_var.set("All journey points cleared")
 
     def add_in_database(self):
         try:
