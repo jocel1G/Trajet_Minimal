@@ -1,5 +1,7 @@
+import dataclasses
 import threading
 import tkinter as tk
+import uuid
 from tkinter import messagebox, ttk
 
 from src.domain.models import CostCriterion, Journey, Location
@@ -113,12 +115,14 @@ class JourneyWindow:
             if not self.locations:
                 self.status_var.set("Add at least one journey point first")
                 return
-            journey = self.current_journey or self._build_journey()
+            base_journey = self.current_journey or self._build_journey()
+            journey = dataclasses.replace(base_journey, id=f"journey-{uuid.uuid4().hex}")
             for location in self.locations:
                 self.persistence.save_location(location)
             self.persistence.save_journey(journey)
             if self.current_result is not None:
-                self.persistence.save_result(self.current_result)
+                self.persistence.save_result(dataclasses.replace(self.current_result, journey_id=journey.id))
+            self.current_journey = journey
             self.status_var.set(
                 "Journey points and optimization saved in database"
                 if self.current_result is not None
