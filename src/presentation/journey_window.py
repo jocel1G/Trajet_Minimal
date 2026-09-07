@@ -25,6 +25,7 @@ class JourneyWindow:
         self.distance_weight_var = tk.StringVar(value="0.6")
         self.duration_weight_var = tk.StringVar(value="0.4")
         self.status_var = tk.StringVar(value="Add journey points to begin")
+        self.journey_id= tk.StringVar(value="")
         self._build()
 
     def _build(self):
@@ -32,6 +33,8 @@ class JourneyWindow:
         self.root.geometry("1000x650")
         controls = ttk.Frame(self.root, padding=12)
         controls.pack(side="left", fill="y")
+        ttk.Label(controls, text="Journey ID").pack(anchor="w")
+        ttk.Label(controls, textvariable=self.journey_id).pack(anchor="w")
         ttk.Label(controls, text="Journey points").pack(anchor="w")
         self.points = tk.Listbox(controls, height=18, width=32)
         self.points.pack()
@@ -105,6 +108,7 @@ class JourneyWindow:
         self.label_var.set("")
         self.latitude_var.set("")
         self.longitude_var.set("")
+        self.journey_id.set("")
 
     def delete_point(self):
         selection = self.points.curselection()
@@ -128,6 +132,7 @@ class JourneyWindow:
             self.persistence.save_journey(journey)
             if self.current_result is not None:
                 self.persistence.save_result(dataclasses.replace(self.current_result, journey_id=journey.id))
+                self.journey_id.set(journey.id)
             
         except Exception as error:
             self.status_var.set(f"Database save failed: {error}")
@@ -198,6 +203,7 @@ class JourneyWindow:
         journey = journeys[selection[0]]
         try:
             self.current_journey = journey
+            self.journey_id.set(journey.id)  # <-- line added 04/09/2026
             self.locations = list(journey.locations)
             self.current_result = self.persistence.get_result(f"{journey.id}-result")
             self.criterion_var.set(journey.cost_criterion.kind)
