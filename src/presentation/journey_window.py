@@ -205,18 +205,19 @@ class JourneyWindow:
             self.current_journey = journey
             self.journey_id.set(journey.id)  # <-- line added 04/09/2026
             self.locations = list(journey.locations)
-            self.current_result = self.persistence.get_result(f"{journey.id}-result")
             self.criterion_var.set(journey.cost_criterion.kind)
             if journey.cost_criterion.weights:
                 self.distance_weight_var.set(str(journey.cost_criterion.weights.get("distance", 0)))
                 self.duration_weight_var.set(str(journey.cost_criterion.weights.get("duration", 0)))
             self._refresh_points()
-            self._show_result(self.current_result)
-            dialog.destroy()
-        except KeyError:
-            self.current_result = None
-            self._refresh_points()
-            self.status_var.set(f"Loaded journey {journey.id}; no optimization saved")
+            self.map_view.show_points(self.locations)
+            try:
+                self.current_result = self.persistence.get_result(f"{journey.id}-result")
+            except KeyError:
+                self.current_result = None
+                self.status_var.set(f"Loaded journey {journey.id}; no optimization saved")
+            else:
+                self._show_result(self.current_result)
             dialog.destroy()
         except Exception as error:
             self.status_var.set(f"Database load failed: {error}")
