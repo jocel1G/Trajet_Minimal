@@ -30,7 +30,7 @@ class JourneyWindow:
 
     def _build(self):
         self.root.title("Multi-Point Ride Optimizer")
-        self.root.geometry("1000x650")
+        self.root.geometry("1000x750")
         controls = ttk.Frame(self.root, padding=12)
         controls.pack(side="left", fill="y")
         ttk.Label(controls, text="Journey ID").pack(anchor="w")
@@ -57,6 +57,8 @@ class JourneyWindow:
         ttk.Entry(controls, textvariable=self.duration_weight_var).pack(fill="x")
         ttk.Button(controls, text="Optimize", command=self.optimize).pack(fill="x", pady=(16, 2))
         ttk.Label(controls, textvariable=self.status_var, wraplength=220).pack(anchor="w", pady=12)
+        #11/09/2026 : bouton Quitter
+        ttk.Button(controls, text="Quit", command=self.root.quit).pack(fill="x", pady=(8, 2))
         map_frame = ttk.Frame(self.root)
         map_frame.pack(side="right", fill="both", expand=True)
         self.map_view = MapView(map_frame)
@@ -64,6 +66,8 @@ class JourneyWindow:
 
     def _on_map_click(self, coordinates):
         latitude, longitude = coordinates
+        #Ajout du 11/09/2026
+        self.label_var.set("")
         self.latitude_var.set(f"{latitude:.6f}")
         self.longitude_var.set(f"{longitude:.6f}")
         self.status_var.set("Map coordinates selected; edit them if needed")
@@ -75,20 +79,17 @@ class JourneyWindow:
         try:
             location = self._read_location()
             self.locations.append(location)
-            self.current_journey = None
-            self.current_result = None
-            self.map_view.clear_route()
-            self._refresh_points()
+            self.common_add_or_delete_point_and_clear_points()
         except (ValueError, Exception) as error:
             messagebox.showerror("Invalid point", str(error))
 
     def modify_point(self):
         selection = self.points.curselection()
-        if not selection:
+        if not selection:            
             return
         try:
             replacement = self._read_location()
-            old = self.locations[selection[0]]
+            old = self.locations[selection[0]]            
             self.locations[selection[0]] = replacement
             self.current_journey = None
             self.current_result = None
@@ -97,7 +98,7 @@ class JourneyWindow:
         except (ValueError, Exception) as error:
             messagebox.showerror("Invalid point", str(error))
 
-    def common_delete_point_and_clear_point(self, index=None):
+    def common_add_or_delete_point_and_clear_points(self, index=None):
         if index is not None:
             location = self.locations.pop(index)
             self.status_var.set(f"Deleted {location.label}")
@@ -118,11 +119,11 @@ class JourneyWindow:
 
         index = selection[0]
         location = self.locations[index]
-        self.common_delete_point_and_clear_point(index)
+        self.common_add_or_delete_point_and_clear_points(index)
 
     def clear_points(self):
         self.locations.clear()
-        self.common_delete_point_and_clear_point()
+        self.common_add_or_delete_point_and_clear_points()
         self.status_var.set("All journey points cleared")
 
     def common_add_and_update_in_database(self, journey):
@@ -241,10 +242,15 @@ class JourneyWindow:
             if len(self.locations) < 2:
                 self.status_var.set("Add at least two points")
                 return
+            if len(self.locations) > self.optimize_service.point_limit:
+                messagebox.showerror(
+                    "Too many points",
+                    f"A journey cannot contain more than {self.optimize_service.point_limit} points.",
+                )
+                return
             journey = self._build_journey()
             self.current_journey = journey
             self.current_result = None
-            self.status_var.set("Optimizing...")
             threading.Thread(target=self._run_optimization, args=(journey,), daemon=True).start()
         except Exception as error:
             self.status_var.set(f"Optimization setup failed: {error}")
